@@ -1,23 +1,28 @@
-/*
-Ultrasonic Sensor HC-SR04
-Vietnamese-German University
-By Tung Le Vo
-Calculate distance to obstacles with SRF04
-Last Modified 8th March 2018
-*/
+/**
+ * Ultrasonic Sensor HC-SR04
+ * Vietnamese-German University
+ * By Tung Le Vo
+ * Calculate distance to obstacles with HC-SR04
+ * Last Modified 9th March 2018
+ */
 
-float getDistance(int ultrasonicTriggerPin, int ultrasonicEchoPin) {
-    /*
-        Send ultrasonic signal to bounce off objects
-     */
-    digitalWrite(ultrasonicTriggerPin, LOW);
+
+/**
+ * Calculate distance from FlagBot to the nearest object
+ * @param  ultrasonicSensorTrigger unsigned int, OUTPUT PIN
+ * @param  ultrasonicSensorEcho    unsigned int, INPUT PIN
+ * @return                         unsigned float
+ */
+unsigned float getDistance(unsigned int ultrasonicSensorTrigger, unsigned int ultrasonicSensorEcho) {
+    // Sending out sound waves
+    digitalWrite(ultrasonicSensorTrigger, LOW);
     delayMicroseconds(2);
-    digitalWrite(ultrasonicTriggerPin, HIGH);
+    digitalWrite(ultrasonicSensorTrigger, HIGH);
     delayMicroseconds(10);
-    digitalWrite(ultrasonicTriggerPin, LOW);
+    digitalWrite(ultrasonicSensorTrigger, LOW);
 
-    unsigned long duration = pulseIn(ultrasonicEchoPin, HIGH); // Get returning pulses
-    unsigned long distance = duration/29/2; // Convert miliseconds to centimeters
+    unsigned long duration = pulseIn(ultrasonicSensorEcho, HIGH); // Return pulses duration (ms)
+    unsigned float distance = duration/29/2; // Convert miliseconds to centimeters
 
     return distance;
 }

@@ -1,10 +1,10 @@
-/*
-DFRobot L298Pv1.1 MotorShield Control Module
-Vietnamese-German University
-By Tung Le Vo
-Control 2 DC motors through the shield using PWN speed control mode:
-Last Modified 8th March 2018
-*/
+/**
+ * DFRobot L298Pv1.1 MotorShield Control Module
+ * Vietnamese-German University
+ * By Tung Le Vo
+ * Control 2 DC motors through the shield using PWN speed control mode:
+ * Last Modified 9th March 2018
+ */
 
 #define FORWARD HIGH
 #define BACKWARD LOW
@@ -15,8 +15,8 @@ const unsigned int HALF_SPEED = 127;
 const unsigned int QUARTER_SPEED = 64;
 
 
-/*
-    Running forward at HALFSPEED
+/**
+ * Running both motors forward at HALF_SPEED
  */
 void runForward() {
     // Serial.println("FORWARD");
@@ -27,8 +27,8 @@ void runForward() {
 }
 
 
-/*
-    Turn left by slow left motor speed to QUARTER_SPEED / 2
+/**
+ * Turn left by slow left motor speed to QUARTER_SPEED / 2
  */
 void turnLeft() {
     // Serial.println("LEFT");
@@ -39,8 +39,8 @@ void turnLeft() {
 }
 
 
-/*
-    Turn right by slow right motor speed to QUARTER_SPEED / 2
+/**
+ * Turn right by slow right motor speed to QUARTER_SPEED / 2
  */
 void turnRight() {
     // Serial.println("RIGHT");
