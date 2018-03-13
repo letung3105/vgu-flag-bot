@@ -61,9 +61,7 @@ void loop() {
         analogWrite(rightMotor.speed, 0);
     }
     else {
-        /*
-            These are true when the line sensors come across a black line
-         */
+        // These are true when the line sensors come across a black line
         bool detectLeft = !digitalRead(leftLineSensor);
         bool detectOuterLeft = !digitalRead(outerLeftLineSensor);
         bool detectRight = !digitalRead(rightLineSensor);

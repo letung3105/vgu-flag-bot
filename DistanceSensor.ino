@@ -11,10 +11,8 @@
  * Calculate distance from FlagBot to the nearest object
  * @param  ultrasonicSensorTrigger unsigned int, OUTPUT PIN
  * @param  ultrasonicSensorEcho    unsigned int, INPUT PIN
- * @return                         unsigned float
+ * @return                         float
  */
-
-
 float getDistance(unsigned int ultrasonicSensorTrigger, unsigned int ultrasonicSensorEcho) {
     // Sending out sound waves
     digitalWrite(ultrasonicSensorTrigger, LOW);
