@@ -14,7 +14,6 @@
  *     +5v -> Ultrasonic Sensor -> Digital Pin 8 (Trigger) -> Digital Pin 9 (Echo) -> GND
  */
 
-
 // Custom struct for storing DC Motors direction and speed pins
 struct DCMotor {
     unsigned int direction;
@@ -23,16 +22,17 @@ struct DCMotor {
 
 const unsigned int outerRightLineSensor = 11;
 const unsigned int rightLineSensor = 2;
-const unsigned int centerLineSensor = 10;
 const unsigned int leftLineSensor = 3;
 const unsigned int outerLeftLineSensor = 12;
 
-const unsigned int utrasonicSensorTrigger = 8;
-const unsigned int utrasonicSensorEcho = 9;
+const unsigned int ultrasonicSensorTrigger = 8;
+const unsigned int ultrasonicSensorEcho = 9;
 
 // Pins for MotorShield control
 DCMotor leftMotor = {4, 5};
 DCMotor rightMotor = {7, 6};
+
+bool idOpen = false;
 
 
 void setup() {
@@ -41,13 +41,12 @@ void setup() {
     pinMode(rightMotor.direction, OUTPUT);
 
     // Ultrasonic Sensor Pins
-    pinMode(utrasonicSensorEcho, INPUT);
-    pinMode(utrasonicSensorTrigger, OUTPUT);
+    pinMode(ultrasonicSensorEcho, INPUT);
+    pinMode(ultrasonicSensorTrigger, OUTPUT);
 
     // Line Sensor Pins
     pinMode(outerRightLineSensor, INPUT);
     pinMode(rightLineSensor, INPUT);
-    pinMode(centerLineSensor, INPUT);
     pinMode(outerLeftLineSensor, INPUT);
     pinMode(leftLineSensor, INPUT);
 
@@ -56,7 +55,7 @@ void setup() {
 
 
 void loop() {
-    if (getDistance(utrasonicSensorTrigger, utrasonicSensorEcho) <= 20) {
+    if (getDistance(ultrasonicSensorTrigger, ultrasonicSensorEcho) <= 20){
         // Stop both motors
         analogWrite(leftMotor.speed, 0);
         analogWrite(rightMotor.speed, 0);
@@ -66,10 +65,12 @@ void loop() {
             These are true when the line sensors come across a black line
          */
         bool detectLeft = !digitalRead(leftLineSensor);
-        bool detectOuterLeft = !digitalRead(outerLeftSensorInput);
+        bool detectOuterLeft = !digitalRead(outerLeftLineSensor);
         bool detectRight = !digitalRead(rightLineSensor);
-        bool detectOuterRight = !digitalRead(outerRightSensorInput);
+        bool detectOuterRight = !digitalRead(outerRightLineSensor);
 
+        // TODO Add center line sensor for better control
+        // TODO Improve robot movement
         if (!detectLeft && !detectOuterLeft && !detectRight && !detectOuterRight) {
             runForward();
         } else if (detectLeft || detectOuterLeft) {

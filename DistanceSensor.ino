@@ -13,7 +13,9 @@
  * @param  ultrasonicSensorEcho    unsigned int, INPUT PIN
  * @return                         unsigned float
  */
-unsigned float getDistance(unsigned int ultrasonicSensorTrigger, unsigned int ultrasonicSensorEcho) {
+
+
+float getDistance(unsigned int ultrasonicSensorTrigger, unsigned int ultrasonicSensorEcho) {
     // Sending out sound waves
     digitalWrite(ultrasonicSensorTrigger, LOW);
     delayMicroseconds(2);
@@ -22,7 +24,7 @@ unsigned float getDistance(unsigned int ultrasonicSensorTrigger, unsigned int ul
     digitalWrite(ultrasonicSensorTrigger, LOW);
 
     unsigned long duration = pulseIn(ultrasonicSensorEcho, HIGH); // Return pulses duration (ms)
-    unsigned float distance = duration/29/2; // Convert miliseconds to centimeters
+    float distance = duration/29/2; // Convert miliseconds to centimeters
 
     return distance;
 }
