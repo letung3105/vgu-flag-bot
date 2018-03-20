@@ -8,20 +8,19 @@
 
 
 /**
- * Calculate distance from FlagBot to the nearest object
- * @param  ultrasonicSensorTrigger unsigned int, OUTPUT PIN
- * @param  ultrasonicSensorEcho    unsigned int, INPUT PIN
- * @return                         float
+ * Calculate the distance from the FlagBot to the nearest object
+ * @param  ultrasonicSensor Storing trigger pin number and echo pin number
+ * @return                  The distance in centimeters
  */
-float getDistance(unsigned int ultrasonicSensorTrigger, unsigned int ultrasonicSensorEcho) {
+float getDistance(UltrasonicSensor ultrasonicSensor) {
     // Sending out sound waves
-    digitalWrite(ultrasonicSensorTrigger, LOW);
+    digitalWrite(ultrasonicSensor.trigger, LOW);
     delayMicroseconds(2);
-    digitalWrite(ultrasonicSensorTrigger, HIGH);
+    digitalWrite(ultrasonicSensor.trigger, HIGH);
     delayMicroseconds(10);
-    digitalWrite(ultrasonicSensorTrigger, LOW);
+    digitalWrite(ultrasonicSensor.trigger, LOW);
 
-    unsigned long duration = pulseIn(ultrasonicSensorEcho, HIGH); // Return pulses duration (ms)
+    uint16_t duration = pulseIn(ultrasonicSensor.echo, HIGH); // Return pulses duration (ms)
     float distance = duration/29/2; // Convert miliseconds to centimeters
 
     return distance;
