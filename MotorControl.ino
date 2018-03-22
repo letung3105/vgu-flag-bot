@@ -42,6 +42,8 @@ int8_t getError(){
         error = 4;
     } else if (!lineSensors[0] && lineSensors[1] && lineSensors[2] && lineSensors[3] && lineSensors[4]){
         error = -4;
+    // } else if (lineSensors[0] && lineSensors[1] && lineSensors[2] && lineSensors[3] && lineSensors[4]){
+    //     error = 10;
     }
     return error;
 }
