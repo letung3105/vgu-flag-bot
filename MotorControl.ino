@@ -6,46 +6,44 @@
  * Last Modified 9th March 2018
  */
 
-#define FORWARD HIGH
-#define BACKWARD LOW
 
-// Constants for motor's speed control
-const unsigned int FULL_SPEED = 255;
-const unsigned int HALF_SPEED = 127;
-const unsigned int QUARTER_SPEED = 64;
-
-
-/**
- * Running both motors forward at HALF_SPEED
- */
-void runForward() {
-    // Serial.println("FORWARD");
-    digitalWrite(rightMotor.direction, FORWARD);
-    digitalWrite(leftMotor.direction, FORWARD);
-    analogWrite(rightMotor.speed, HALF_SPEED);
-    analogWrite(leftMotor.speed, HALF_SPEED);
+void runMotor(DCMotor motor, bool direction, uint8_t speed){
+    digitalWrite(motor.direction, direction);
+    analogWrite(motor.speed, speed);
 }
 
 
-/**
- * Turn left by slow left motor speed to QUARTER_SPEED / 2
- */
-void turnLeft() {
-    // Serial.println("LEFT");
-    digitalWrite(rightMotor.direction, FORWARD);
-    digitalWrite(leftMotor.direction, FORWARD);
-    analogWrite(rightMotor.speed, HALF_SPEED);
-    analogWrite(leftMotor.speed, QUARTER_SPEED / 2);
+int16_t calculatePID(int8_t err, int8_t prev_err){
+    P = err;
+    I += err;
+    D = err - prev_err;
+    int16_t PIDvalue = (Kp * P) + (Ki * I) + (Kd * D);
+    return PIDvalue;
 }
 
 
-/**
- * Turn right by slow right motor speed to QUARTER_SPEED / 2
- */
-void turnRight() {
-    // Serial.println("RIGHT");
-    digitalWrite(rightMotor.direction, FORWARD);
-    digitalWrite(leftMotor.direction, FORWARD);
-    analogWrite(rightMotor.speed, QUARTER_SPEED / 2);
-    analogWrite(leftMotor.speed, HALF_SPEED);
+int8_t getError(){
+    int8_t error = 0;
+    if (lineSensors[0] && lineSensors[1] && !lineSensors[2] && lineSensors[3] && lineSensors[4]){
+        error = 0;
+    } else if (lineSensors[0] && lineSensors[1] && !lineSensors[2] && !lineSensors[3] && lineSensors[4]){
+        error = 1;
+    } else if (lineSensors[0] && !lineSensors[1] && !lineSensors[2] && lineSensors[3] && lineSensors[4]){
+        error = -1;
+    } else if (lineSensors[0] && lineSensors[1] && lineSensors[2] && !lineSensors[3] && lineSensors[4]){
+        error = 2;
+    } else if (lineSensors[0] && !lineSensors[1] && lineSensors[2] && lineSensors[3] && lineSensors[4]){
+        error = -2;
+    } else if (lineSensors[0] && lineSensors[1] && lineSensors[2] && !lineSensors[3] && !lineSensors[4]){
+        error = 3;
+    } else if (!lineSensors[0] && !lineSensors[1] && lineSensors[2] && lineSensors[3] && lineSensors[4]){
+        error = -3;
+    } else if (lineSensors[0] && lineSensors[1] && lineSensors[2] && lineSensors[3] && !lineSensors[4]){
+        error = 4;
+    } else if (!lineSensors[0] && lineSensors[1] && lineSensors[2] && lineSensors[3] && lineSensors[4]){
+        error = -4;
+    // } else if (lineSensors[0] && lineSensors[1] && lineSensors[2] && lineSensors[3] && lineSensors[4]){
+    //     error = 10;
+    }
+    return error;
 }

@@ -3,7 +3,7 @@
  * Vietnamese-German University
  * By Tung Le Vo
  * Line following robot with obstacles detection and servo for raising flag
- * Last Modified 9th March 2018
+ * Last Modified 19th March 2018
  * Connections:
  *     Left Motor -> Motor 1 pins (Shield)
  *     Right Motor -> Motor 2 pins (Shield)
@@ -13,68 +13,124 @@
  *     +5v -> Line Sensor -> Digital Pin 12 -> GND
  *     +5v -> Ultrasonic Sensor -> Digital Pin 8 (Trigger) -> Digital Pin 9 (Echo) -> GND
  */
+// TODO: Rewrite connections in header comments
 
-// Custom struct for storing DC Motors direction and speed pins
-struct DCMotor {
-    unsigned int direction;
-    unsigned int speed;
-};
+#define FORWARD LOW
+#define BACKWARD HIGH
 
-const unsigned int outerRightLineSensor = 11;
-const unsigned int rightLineSensor = 2;
-const unsigned int leftLineSensor = 3;
-const unsigned int outerLeftLineSensor = 12;
 
-const unsigned int ultrasonicSensorTrigger = 8;
-const unsigned int ultrasonicSensorEcho = 9;
+// Storing DC motors direction and speed control pins
+typedef struct {
+    const uint8_t direction;
+    const uint8_t speed;
+} DCMotor;
+
+// Storing ultrasonic sensor trigger and echo pins
+typedef struct {
+    const uint8_t trigger;
+    const uint8_t echo;
+} UltrasonicSensor;
+
+// DC motors speed limits
+const uint8_t LEFT_BASE_SPEED = 150;
+const uint8_t RIGHT_BASE_SPEED = 150;
+const uint8_t LEFT_MAX_SPEED = 200;
+const uint8_t RIGHT_MAX_SPEED = 200;
+
+// The line sensors are indexed from left to right
+const uint8_t numLineSensors = 5;
+const uint8_t lineSensorPins[numLineSensors] = {2, 3, 5, 6, 7};
+uint8_t lineSensors[numLineSensors];
+
+// Pins for the ultrasonic sensor
+const UltrasonicSensor ultrasonicSensor = {8, 9};
 
 // Pins for MotorShield control
-DCMotor leftMotor = {4, 5};
-DCMotor rightMotor = {7, 6};
+const DCMotor leftMotor = {12, 10};
+const DCMotor rightMotor = {13, 11};
 
-bool idOpen = false;
+// Motor shield's buzzer
+const uint8_t buzzerPin = 4;
+
+// Tracking current and previous err (postion of the FlagBot)
+int8_t err = 0;
+int8_t prev_err = 0;
+
+// Parameters for PID control
+int16_t P = 0, I = 0, D = 0;
+const uint8_t Kp = 100;
+const uint8_t Ki = 0;
+const uint8_t Kd = 0;
+
+// Determine if the FlagBot need to stop
+bool missLine = false;
 
 
 void setup() {
     // DC Motors Pins
     pinMode(leftMotor.direction, OUTPUT);
     pinMode(rightMotor.direction, OUTPUT);
+    pinMode(leftMotor.speed, OUTPUT);
+    pinMode(rightMotor.speed, OUTPUT);
 
     // Ultrasonic Sensor Pins
-    pinMode(ultrasonicSensorEcho, INPUT);
-    pinMode(ultrasonicSensorTrigger, OUTPUT);
+    pinMode(ultrasonicSensor.echo, INPUT);
+    pinMode(ultrasonicSensor.trigger, OUTPUT);
 
     // Line Sensor Pins
-    pinMode(outerRightLineSensor, INPUT);
-    pinMode(rightLineSensor, INPUT);
-    pinMode(outerLeftLineSensor, INPUT);
-    pinMode(leftLineSensor, INPUT);
+    for (int i=0; i < numLineSensors; i++){
+        pinMode(lineSensorPins[i], INPUT);
+    }
+
+    pinMode(buzzerPin, OUTPUT);
+    while (getDistance(ultrasonicSensor) <= 20){
+        digitalWrite(buzzerPin, HIGH);
+        delay(200);
+        digitalWrite(buzzerPin, LOW);
+        delay(1800);
+    }
+
 
     Serial.begin(9600);
 }
 
 
 void loop() {
-    if (getDistance(ultrasonicSensorTrigger, ultrasonicSensorEcho) <= 20){
+    if (getDistance(ultrasonicSensor) <= 20){
         // Stop both motors
         analogWrite(leftMotor.speed, 0);
         analogWrite(rightMotor.speed, 0);
     }
-    else {
-        // These are true when the line sensors come across a black line
-        bool detectLeft = !digitalRead(leftLineSensor);
-        bool detectOuterLeft = !digitalRead(outerLeftLineSensor);
-        bool detectRight = !digitalRead(rightLineSensor);
-        bool detectOuterRight = !digitalRead(outerRightLineSensor);
-
-        // TODO Add center line sensor for better control
-        // TODO Improve robot movement
-        if (!detectLeft && !detectOuterLeft && !detectRight && !detectOuterRight) {
-            runForward();
-        } else if (detectLeft || detectOuterLeft) {
-            turnLeft();
-        } else if (detectRight || detectOuterRight) {
-            turnRight();
+    else if (!missLine){
+        for (uint8_t i=0; i < numLineSensors; i++){
+            lineSensors[i] = digitalRead(lineSensorPins[i]);
         }
+
+        err = getError();
+        // if (err != 10){
+            // uint8_t leftAdjSpeed = LEFT_BASE_SPEED + (Kp * prev_err);
+            // uint8_t rightAdjSpeed = RIGHT_BASE_SPEED - (Kp * prev_err);
+            // analogWrite(leftMotor.speed, leftAdjSpeed);
+            // analogWrite(rightMotor.speed, rightAdjSpeed);
+            // delay(200);
+            // err = getError();
+            // if (err == 10){
+            //     missLine = true;
+            //     analogWrite(leftMotor.speed, 0);
+            //     analogWrite(rightMotor.speed, 0);
+            // }
+        // } else {
+            int16_t PIDval = calculatePID(err, prev_err);
+            prev_err = err;
+
+            uint8_t leftMotorSpeed = constrain(LEFT_BASE_SPEED + PIDval, 0, LEFT_MAX_SPEED);
+            uint8_t rightMotorSpeed = constrain(RIGHT_BASE_SPEED - PIDval, 0, RIGHT_MAX_SPEED);
+
+            digitalWrite(leftMotor.direction, FORWARD);
+            analogWrite(leftMotor.speed, leftMotorSpeed);
+
+            digitalWrite(rightMotor.direction, FORWARD);
+            analogWrite(rightMotor.speed, rightMotorSpeed);
+        // }
     }
 }
