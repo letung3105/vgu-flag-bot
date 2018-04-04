@@ -7,43 +7,59 @@
  */
 
 
-void runMotor(DCMotor motor, bool direction, uint8_t speed){
-    digitalWrite(motor.direction, direction);
-    analogWrite(motor.speed, speed);
+void runLeftMotor(bool direction, uint8_t speed){
+    digitalWrite(leftMotor.direction, direction);
+    analogWrite(leftMotor.speed, speed);
 }
 
 
-int16_t calculatePID(int8_t err, int8_t prev_err){
-    P = err;
-    I += err;
-    D = err - prev_err;
-    int16_t PIDvalue = (Kp * P) + (Ki * I) + (Kd * D);
-    return PIDvalue;
+void runRightMotor(bool direction, uint8_t speed){
+    digitalWrite(rightMotor.direction, direction);
+    analogWrite(rightMotor.speed, speed);
 }
 
 
 int8_t getError(){
-    int8_t error = 0;
-    if (lineSensors[0] && lineSensors[1] && !lineSensors[2] && lineSensors[3] && lineSensors[4]){
-        error = 0;
-    } else if (lineSensors[0] && lineSensors[1] && !lineSensors[2] && !lineSensors[3] && lineSensors[4]){
-        error = 1;
-    } else if (lineSensors[0] && !lineSensors[1] && !lineSensors[2] && lineSensors[3] && lineSensors[4]){
-        error = -1;
-    } else if (lineSensors[0] && lineSensors[1] && lineSensors[2] && !lineSensors[3] && lineSensors[4]){
-        error = 2;
-    } else if (lineSensors[0] && !lineSensors[1] && lineSensors[2] && lineSensors[3] && lineSensors[4]){
-        error = -2;
-    } else if (lineSensors[0] && lineSensors[1] && lineSensors[2] && !lineSensors[3] && !lineSensors[4]){
-        error = 3;
-    } else if (!lineSensors[0] && !lineSensors[1] && lineSensors[2] && lineSensors[3] && lineSensors[4]){
-        error = -3;
-    } else if (lineSensors[0] && lineSensors[1] && lineSensors[2] && lineSensors[3] && !lineSensors[4]){
-        error = 4;
-    } else if (!lineSensors[0] && lineSensors[1] && lineSensors[2] && lineSensors[3] && lineSensors[4]){
-        error = -4;
-    // } else if (lineSensors[0] && lineSensors[1] && lineSensors[2] && lineSensors[3] && lineSensors[4]){
-    //     error = 10;
-    }
-    return error;
+    if (digitalRead(lineSensorPins[0])
+        && !digitalRead(lineSensorPins[1])
+        && digitalRead(lineSensorPins[2]))
+        return 0;
+    else if (!digitalRead(lineSensorPins[0])
+        && !digitalRead(lineSensorPins[1])
+        && digitalRead(lineSensorPins[2]))
+        return -10;
+    else if (digitalRead(lineSensorPins[0])
+        && !digitalRead(lineSensorPins[1])
+        && !digitalRead(lineSensorPins[2]))
+        return 10;
+    else if (!digitalRead(lineSensorPins[0])
+        && digitalRead(lineSensorPins[1])
+        && digitalRead(lineSensorPins[2]))
+        return -20;
+    else if (digitalRead(lineSensorPins[0])
+        && digitalRead(lineSensorPins[1])
+        && !digitalRead(lineSensorPins[2]))
+        return 20;
+    else return 100;
+}
+
+
+float getPID(int8_t error, int8_t previous_error){
+    P = error;
+    I = I + error;
+    D = error - previous_error;
+    int16_t value = (Kp * P) + (Ki * I) + (Kd * D);
+    return value;
+}
+
+
+void turnAround(){
+    runLeftMotor(BACKWARD, LEFT_BASE_SPEED / 2);
+    runRightMotor(FORWARD, RIGHT_BASE_SPEED / 2);
+    delay(100);
+    do {
+        runLeftMotor(BACKWARD, LEFT_BASE_SPEED);
+        runRightMotor(FORWARD, RIGHT_BASE_SPEED);
+        Serial.println("TURNING AROUND");
+    } while (digitalRead(lineSensorPins[1]));
 }
