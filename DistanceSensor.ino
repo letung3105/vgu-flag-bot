@@ -12,16 +12,44 @@
  * @param  ultrasonicSensor Storing trigger pin number and echo pin number
  * @return                  The distance in centimeters
  */
-float getDistance(UltrasonicSensor ultrasonicSensor) {
+uint16_t getDistance(uint8_t mySensor) {
     // Sending out sound waves
-    digitalWrite(ultrasonicSensor.trigger, LOW);
+    pinMode(mySensor, OUTPUT);
+    digitalWrite(mySensor, LOW);
     delayMicroseconds(2);
-    digitalWrite(ultrasonicSensor.trigger, HIGH);
+    digitalWrite(mySensor, HIGH);
     delayMicroseconds(10);
-    digitalWrite(ultrasonicSensor.trigger, LOW);
-
-    uint16_t duration = pulseIn(ultrasonicSensor.echo, HIGH); // Return pulses duration (ms)
-    float distance = duration/29/2; // Convert miliseconds to centimeters
-
+    digitalWrite(mySensor, LOW);
+    pinMode(mySensor, INPUT);
+    uint16_t duration = pulseIn(mySensor, HIGH); // Return pulses duration (ms)
+    uint16_t distance = (duration / 2) * 0.034; // Convert miliseconds to centimeters
+    Serial.print("Distance: ");
+    Serial.println(distance);
     return distance;
 }
+
+
+bool getFrontInf(){
+    for (uint8_t i=0; i < numWallSensors; i++){
+        if (digitalRead(wallSensorPins[i])) return true;
+    }
+    return false;
+}
+
+
+bool detectObstacle(uint8_t threshold){
+    uint16_t distance = getDistance(ultraSonicSensor);
+    if ((distance > 0 && distance <= threshold) || getFrontInf()){
+        return true;
+    }
+    return false;
+}
+
+
+// bool detectWall(uint8_t threshold){
+//     uint16_t distance = getDistance(ultraSonicSensor);
+//     if ((distance > 0 && distance <= threshold) && getFrontInf()){
+//         return true;
+//     }
+//     return false;
+// }

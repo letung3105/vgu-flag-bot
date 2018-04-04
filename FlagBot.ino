@@ -15,9 +15,10 @@
  */
 // TODO: Rewrite connections in header comments
 
-#define FORWARD LOW
-#define BACKWARD HIGH
+#include<Servo.h>
 
+#define FORWARD HIGH
+#define BACKWARD LOW
 
 // Storing DC motors direction and speed control pins
 typedef struct {
@@ -25,45 +26,46 @@ typedef struct {
     const uint8_t speed;
 } DCMotor;
 
-// Storing ultrasonic sensor trigger and echo pins
-typedef struct {
-    const uint8_t trigger;
-    const uint8_t echo;
-} UltrasonicSensor;
+// Ser for raising the flag
+Servo flagServo;
 
 // DC motors speed limits
-const uint8_t LEFT_BASE_SPEED = 150;
-const uint8_t RIGHT_BASE_SPEED = 150;
-const uint8_t LEFT_MAX_SPEED = 200;
-const uint8_t RIGHT_MAX_SPEED = 200;
+const uint8_t LEFT_BASE_SPEED = 125;
+const uint8_t RIGHT_BASE_SPEED = 125;
+const uint8_t LEFT_MAX_SPEED = 140;
+const uint8_t RIGHT_MAX_SPEED = 140;
+
+const uint8_t DISTANCE_TO_OBSTACLE = 20;
 
 // The line sensors are indexed from left to right
-const uint8_t numLineSensors = 5;
-const uint8_t lineSensorPins[numLineSensors] = {2, 3, 5, 6, 7};
+const uint8_t numLineSensors = 3;
+const uint8_t lineSensorPins[numLineSensors] = {2, 3, 13};
 uint8_t lineSensors[numLineSensors];
 
+// Using line detecting sensors for wall detection
+const uint8_t numWallSensors =  2;
+const uint8_t wallSensorPins[numWallSensors] = {10, 11};
+
 // Pins for the ultrasonic sensor
-const UltrasonicSensor ultrasonicSensor = {8, 9};
+const uint8_t ultraSonicSensor = 9;
 
 // Pins for MotorShield control
-const DCMotor leftMotor = {12, 10};
-const DCMotor rightMotor = {13, 11};
+const DCMotor leftMotor = {4, 5};
+const DCMotor rightMotor = {7, 6};
+const uint8_t leftLED = 13;
+const uint8_t rightLED = 0;
 
-// Motor shield's buzzer
-const uint8_t buzzerPin = 4;
+// Proportional value
+const float Kp = 4;
+const float Ki = 0;
+const float Kd = 4;
+float P = 0;
+float I = 0;
+float D = 0;
 
-// Tracking current and previous err (postion of the FlagBot)
-int8_t err = 0;
-int8_t prev_err = 0;
-
-// Parameters for PID control
-int16_t P = 0, I = 0, D = 0;
-const uint8_t Kp = 100;
-const uint8_t Ki = 0;
-const uint8_t Kd = 0;
-
-// Determine if the FlagBot need to stop
-bool missLine = false;
+// Bot's current state
+int8_t currentError = 0;
+int8_t previousError = 0;
 
 
 void setup() {
@@ -73,64 +75,84 @@ void setup() {
     pinMode(leftMotor.speed, OUTPUT);
     pinMode(rightMotor.speed, OUTPUT);
 
-    // Ultrasonic Sensor Pins
-    pinMode(ultrasonicSensor.echo, INPUT);
-    pinMode(ultrasonicSensor.trigger, OUTPUT);
+    // LEDs pins
+    // pinMode(leftLED, OUTPUT);
+    // pinMode(rightLED, OUTPUT);
+
+    // Flag Servo Pin
+    flagServo.attach(12);
+    flagServo.write(0);
 
     // Line Sensor Pins
-    for (int i=0; i < numLineSensors; i++){
+    for (uint8_t i=0; i < numLineSensors; i++){
         pinMode(lineSensorPins[i], INPUT);
+        lineSensors[i] = 0;
     }
 
-    pinMode(buzzerPin, OUTPUT);
-    while (getDistance(ultrasonicSensor) <= 20){
-        digitalWrite(buzzerPin, HIGH);
-        delay(200);
-        digitalWrite(buzzerPin, LOW);
-        delay(1800);
+    // Wall Sensor Pins
+    for (uint8_t i=0; i < numWallSensors; i++){
+        pinMode(wallSensorPins[i], INPUT);
     }
-
 
     Serial.begin(9600);
+
+    while (detectObstacle(10)){
+        Serial.println("Stoping at gate");
+        // digitalWrite(leftLED, HIGH);
+        // digitalWrite(rightLED, HIGH);
+    }
+    delay(1000);
 }
 
 
 void loop() {
-    if (getDistance(ultrasonicSensor) <= 20){
+    currentError = getError();
+    if (currentError == 100){
+        currentError = previousError;
+    }
+    // Serial.print("Error: ");
+    // Serial.println(currentError);
+
+    int16_t valuePID = getPID(currentError, previousError);
+    // Serial.print("PID value: ");
+    // Serial.println(valuePID);
+
+    uint8_t leftMotorSpeed = constrain(LEFT_BASE_SPEED + valuePID, 0, LEFT_MAX_SPEED);
+    uint8_t rightMotorSpeed = constrain(RIGHT_BASE_SPEED - valuePID, 0, RIGHT_MAX_SPEED);
+    // Serial.print("Left Motor: ");
+    // Serial.println(leftMotorSpeed);
+    // Serial.print("Right Motor: ");
+    // Serial.println(rightMotorSpeed);
+
+    // if (leftMotorSpeed == rightMotorSpeed){
+    //     Serial.println("FORWARD");
+    // } else if (leftMotorSpeed < rightMotorSpeed){
+    //     Serial.println("TURN LEFT");
+    // } else if (leftMotorSpeed > rightMotorSpeed){
+    //     Serial.println("TURN RIGHT");
+    // }
+
+    if (detectWall(DISTANCE_TO_OBSTACLE)){
         // Stop both motors
         analogWrite(leftMotor.speed, 0);
         analogWrite(rightMotor.speed, 0);
-    }
-    else if (!missLine){
-        for (uint8_t i=0; i < numLineSensors; i++){
-            lineSensors[i] = digitalRead(lineSensorPins[i]);
+
+        delay(2000);
+        if (detectWall(DISTANCE_TO_OBSTACLE)){
+            // Serial.println("Wall detected");
+
+            // digitalWrite(leftLED, HIGH);
+            // digitalWrite(rightLED, HIGH);
+
+            flagServo.write(90);
+            delay(2000);
+            turnAround();
         }
-
-        err = getError();
-        // if (err != 10){
-            // uint8_t leftAdjSpeed = LEFT_BASE_SPEED + (Kp * prev_err);
-            // uint8_t rightAdjSpeed = RIGHT_BASE_SPEED - (Kp * prev_err);
-            // analogWrite(leftMotor.speed, leftAdjSpeed);
-            // analogWrite(rightMotor.speed, rightAdjSpeed);
-            // delay(200);
-            // err = getError();
-            // if (err == 10){
-            //     missLine = true;
-            //     analogWrite(leftMotor.speed, 0);
-            //     analogWrite(rightMotor.speed, 0);
-            // }
-        // } else {
-            int16_t PIDval = calculatePID(err, prev_err);
-            prev_err = err;
-
-            uint8_t leftMotorSpeed = constrain(LEFT_BASE_SPEED + PIDval, 0, LEFT_MAX_SPEED);
-            uint8_t rightMotorSpeed = constrain(RIGHT_BASE_SPEED - PIDval, 0, RIGHT_MAX_SPEED);
-
-            digitalWrite(leftMotor.direction, FORWARD);
-            analogWrite(leftMotor.speed, leftMotorSpeed);
-
-            digitalWrite(rightMotor.direction, FORWARD);
-            analogWrite(rightMotor.speed, rightMotorSpeed);
-        // }
+    } else {
+        runLeftMotor(FORWARD, leftMotorSpeed);
+        runRightMotor(FORWARD, rightMotorSpeed);
     }
+
+    previousError = currentError;
+    // delay(10);
 }
