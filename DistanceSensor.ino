@@ -1,17 +1,15 @@
 /**
  * Ultrasonic Sensor HC-SR04
  * Vietnamese-German University
- * By Tung Le Vo
+* By Tung Le Vo
  * Calculate distance to obstacles with HC-SR04
- * Last Modified 9th March 2018
+ * Last Modified 11th April 2018
  */
 
 
-/**
- * Calculate the distance from the FlagBot to the nearest object
- * @param  ultrasonicSensor Storing trigger pin number and echo pin number
- * @return                  The distance in centimeters
- */
+// Calculate the distance
+// Since 1 pin is used for both the echo and trigger
+// we have to change the pin mode of it accordingly
 uint16_t getDistance(uint8_t mySensor) {
     // Sending out sound waves
     pinMode(mySensor, OUTPUT);
@@ -20,36 +18,19 @@ uint16_t getDistance(uint8_t mySensor) {
     digitalWrite(mySensor, HIGH);
     delayMicroseconds(10);
     digitalWrite(mySensor, LOW);
+
     pinMode(mySensor, INPUT);
     uint16_t duration = pulseIn(mySensor, HIGH); // Return pulses duration (ms)
-    uint16_t distance = (duration / 2) * 0.034; // Convert miliseconds to centimeters
-    Serial.print("Distance: ");
-    Serial.println(distance);
+    uint16_t distance = duration * 0.034 / 2; // Convert microseconds to centimeters
+
     return distance;
 }
 
 
-bool getFrontInf(){
-    for (uint8_t i=0; i < numWallSensors; i++){
-        if (digitalRead(wallSensorPins[i])) return true;
-    }
-    return false;
-}
-
-
+// Simple function to compare distance calculated from 2 different sensors
 bool detectObstacle(uint8_t threshold){
-    uint16_t distance = getDistance(ultraSonicSensor);
-    if ((distance > 0 && distance <= threshold) || getFrontInf()){
+    if ((getDistance(leftUltraSonicSensor) <= threshold) && (getDistance(rightUltraSonicSensor) <= threshold)){
         return true;
     }
     return false;
 }
-
-
-// bool detectWall(uint8_t threshold){
-//     uint16_t distance = getDistance(ultraSonicSensor);
-//     if ((distance > 0 && distance <= threshold) && getFrontInf()){
-//         return true;
-//     }
-//     return false;
-// }
