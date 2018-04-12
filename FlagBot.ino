@@ -35,14 +35,34 @@ typedef struct {
 Servo flagServo;
 
 // DC motors PWM speed limits
-// Current best value 150 - 160
-const uint8_t LEFT_BASE_SPEED = 150;
-const uint8_t RIGHT_BASE_SPEED = 150;
-const uint8_t LEFT_MAX_SPEED = 160;
-const uint8_t RIGHT_MAX_SPEED = 160;
+// Normal: 150 - 160
+// Faster: 170 - 180
+const uint8_t LEFT_BASE_SPEED = 170;
+const uint8_t RIGHT_BASE_SPEED = 170;
+const uint8_t LEFT_MAX_SPEED = 180;
+const uint8_t RIGHT_MAX_SPEED = 180;
+
+// Offtrack mode adjusted speed
+// Normal: 100-100
+// Faster: 110-110
+
+const uint8_t OFFTRACK_LEFT_BASE_SPEED = 110;
+const uint8_t OFFTRACK_RIGHT_BASE_SPEED = 110;
+const uint8_t OFFTRACK_LEFT_MAX_SPEED = 110;
+const uint8_t OFFTRACK_RIGHT_MAX_SPEED = 110;
+
+// PID values
+// Normal: 50-0-60
+// Faster: 30-0-40
+const float Kp = 30;
+const float Ki = 0;
+const float Kd = 40;
+float P = 0;
+float I = 0;
+float D = 0;
 
 // Distance threshold
-const uint8_t DISTANCE_TO_OBSTACLE = 10;
+const uint8_t DISTANCE_TO_OBSTACLE = 20;
 const uint8_t DISTANCE_TO_WALL = 20;
 
 // The line sensors are indexed from left to right
@@ -58,14 +78,6 @@ const uint8_t rightUltraSonicSensor = 9;
 const DCMotor leftMotor = {4, 5};
 const DCMotor rightMotor = {7, 6};
 
-// PID values
-const float Kp = 50; // current best 50
-const float Ki = 0;
-const float Kd = 60; // current best 60
-float P = 0;
-float I = 0;
-float D = 0;
-
 // Line positions
 int8_t currentError = 0;
 int8_t previousError = 0;
@@ -73,6 +85,16 @@ int8_t previousError = 0;
 // LEDs
 const uint8_t leftLED = A0;
 const uint8_t rightLED = A1;
+
+// Helper varialbles
+int16_t valuePID;
+uint8_t leftMotorSpeed;
+uint8_t rightMotorSpeed;
+
+uint8_t adj_left_max;
+uint8_t adj_right_max;
+uint8_t adj_left_base;
+uint8_t adj_right_base;
 
 
 void setup() {
@@ -128,20 +150,30 @@ void loop() {
         // This is when no line sensor can detect the line
         if (currentError == 100){
             currentError = previousError;
+
+            adj_left_base = OFFTRACK_LEFT_BASE_SPEED;
+            adj_right_base = OFFTRACK_RIGHT_BASE_SPEED;
+            adj_left_max = OFFTRACK_LEFT_MAX_SPEED;
+            adj_right_max = OFFTRACK_RIGHT_MAX_SPEED;
+        } else {
+            adj_left_base = LEFT_BASE_SPEED;
+            adj_right_base = RIGHT_BASE_SPEED;
+            adj_left_max = LEFT_MAX_SPEED;
+            adj_right_max = RIGHT_MAX_SPEED;
         }
 
-        int16_t valuePID = getPID(currentError, previousError);
-        uint8_t leftMotorSpeed = constrain(LEFT_BASE_SPEED + valuePID, 0, LEFT_MAX_SPEED);
-        uint8_t rightMotorSpeed = constrain(RIGHT_BASE_SPEED - valuePID, 0, RIGHT_MAX_SPEED);
-        do {
+        valuePID = getPID(currentError, previousError);
+        leftMotorSpeed = constrain(adj_left_base + valuePID, 0, adj_left_max);
+        rightMotorSpeed = constrain(adj_right_base - valuePID, 0, adj_right_max);
+        //do {
             runLeftMotor(FORWARD, leftMotorSpeed);
             runRightMotor(FORWARD, rightMotorSpeed);
             digitalWrite(leftLED, leftMotorSpeed < rightMotorSpeed);
             digitalWrite(rightLED, leftMotorSpeed > rightMotorSpeed);
-        // } while (!digitalRead(lineSensorPins[2]));
-        } while (digitalRead(lineSensorPins[1]) && digitalRead(lineSensorPins[2]) && (digitalRead(lineSensorPins[3])));
+        //} while (digitalRead(lineSensorPins[1]) && digitalRead(lineSensorPins[2]) && (digitalRead(lineSensorPins[3])));
+
+        if (currentError != 100) previousError = currentError;
     }
 
-    previousError = currentError;
     // delay(10);
 }

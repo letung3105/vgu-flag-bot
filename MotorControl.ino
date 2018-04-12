@@ -56,7 +56,7 @@ void turnAround(){
     digitalWrite(rightLED, LOW);
     runLeftMotor(BACKWARD, 100);
     runRightMotor(FORWARD, 100);
-    delay(300);
+    delay(500);
     // Stop when 1 of the 3 middle sensors detects the line
     do {
         runLeftMotor(BACKWARD, 100);
