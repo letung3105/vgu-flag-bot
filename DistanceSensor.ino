@@ -1,23 +1,36 @@
-/*
-Ultrasonic Sensor HC-SR04
-Vietnamese-German University
-By Tung Le Vo
-Calculate distance to obstacles with SRF04
-Last Modified 8th March 2018
-*/
+/**
+ * Ultrasonic Sensor HC-SR04
+ * Vietnamese-German University
+* By Tung Le Vo
+ * Calculate distance to obstacles with HC-SR04
+ * Last Modified 11th April 2018
+ */
 
-float getDistance(int ultrasonicTriggerPin, int ultrasonicEchoPin) {
-    /*
-        Send ultrasonic signal to bounce off objects
-     */
-    digitalWrite(ultrasonicTriggerPin, LOW);
+
+// Calculate the distance
+// Since 1 pin is used for both the echo and trigger
+// we have to change the pin mode of it accordingly
+uint16_t getDistance(uint8_t mySensor) {
+    // Sending out sound waves
+    pinMode(mySensor, OUTPUT);
+    digitalWrite(mySensor, LOW);
     delayMicroseconds(2);
-    digitalWrite(ultrasonicTriggerPin, HIGH);
+    digitalWrite(mySensor, HIGH);
     delayMicroseconds(10);
-    digitalWrite(ultrasonicTriggerPin, LOW);
+    digitalWrite(mySensor, LOW);
 
-    unsigned long duration = pulseIn(ultrasonicEchoPin, HIGH); // Get returning pulses
-    unsigned long distance = duration/29/2; // Convert miliseconds to centimeters
+    pinMode(mySensor, INPUT);
+    uint16_t duration = pulseIn(mySensor, HIGH); // Return pulses duration (ms)
+    uint16_t distance = duration * 0.034 / 2; // Convert microseconds to centimeters
 
     return distance;
+}
+
+
+// Simple function to compare distance calculated from 2 different sensors
+bool detectObstacle(uint16_t threshold){
+    if ((getDistance(leftUltraSonicSensor) <= threshold) && (getDistance(rightUltraSonicSensor) <= threshold)){
+        return true;
+    }
+    return false;
 }
