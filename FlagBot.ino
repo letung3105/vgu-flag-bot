@@ -37,10 +37,10 @@ Servo flagServo;
 // DC motors PWM speed limits
 // Normal: 150 - 160
 // Faster: 170 - 180
-const uint8_t LEFT_BASE_SPEED = 170;
-const uint8_t RIGHT_BASE_SPEED = 170;
-const uint8_t LEFT_MAX_SPEED = 180;
-const uint8_t RIGHT_MAX_SPEED = 180;
+const uint8_t LEFT_BASE_SPEED = 160;
+const uint8_t RIGHT_BASE_SPEED = 160;
+const uint8_t LEFT_MAX_SPEED = 170;
+const uint8_t RIGHT_MAX_SPEED = 170;
 
 // Offtrack mode adjusted speed
 // Normal: 100-100
@@ -56,14 +56,15 @@ const uint8_t OFFTRACK_RIGHT_MAX_SPEED = 110;
 // Faster: 30-0-40
 const float Kp = 30;
 const float Ki = 0;
-const float Kd = 40;
+const float Kd = 30;
 float P = 0;
 float I = 0;
 float D = 0;
 
 // Distance threshold
-const uint8_t DISTANCE_TO_OBSTACLE = 20;
-const uint8_t DISTANCE_TO_WALL = 20;
+const uint8_t DISTANCE_TO_GATE = 50;
+const uint8_t DISTANCE_TO_OBSTACLE = 10;
+const uint8_t DISTANCE_TO_WALL = 25;
 
 // The line sensors are indexed from left to right
 const uint8_t numLineSensors = 5;
@@ -96,6 +97,8 @@ uint8_t adj_right_max;
 uint8_t adj_left_base;
 uint8_t adj_right_base;
 
+bool isRaiseFlag = false;
+
 
 void setup() {
     // DC Motors Pins
@@ -123,30 +126,31 @@ void setup() {
     digitalWrite(leftLED, HIGH);
     digitalWrite(rightLED, HIGH);
 
+    delay(1000);
     // Keep looping while the gate is still closing
-    while (detectObstacle(DISTANCE_TO_OBSTACLE)){
+    while (detectObstacle(DISTANCE_TO_WALL)){
         Serial.println("Stoping at gate");
+        delay(100);
     }
     delay(1000); // Wait for the gate to fully open
 }
 
 
 void loop() {
-    if (detectObstacle(DISTANCE_TO_OBSTACLE)){
+    currentError = getError();
+    if (detectObstacle(DISTANCE_TO_GATE)){
         // Stop running if there's an obstacle
         analogWrite(leftMotor.speed, 0);
         analogWrite(rightMotor.speed, 0);
         digitalWrite(leftLED, HIGH);
         digitalWrite(rightLED, HIGH);
-        delay(500);
-        if (detectObstacle(DISTANCE_TO_WALL)){
+        delay(400);
+        if (detectObstacle(DISTANCE_TO_WALL) && !isRaiseFlag){
             flagServo.write(80);
             delay(500);
             turnAround();
         }
     } else {
-        currentError = getError();
-
         // This is when no line sensor can detect the line
         if (currentError == 100){
             currentError = previousError;
@@ -172,8 +176,7 @@ void loop() {
             digitalWrite(rightLED, leftMotorSpeed > rightMotorSpeed);
         //} while (digitalRead(lineSensorPins[1]) && digitalRead(lineSensorPins[2]) && (digitalRead(lineSensorPins[3])));
 
-        if (currentError != 100) previousError = currentError;
     }
-
+    if (currentError != 100) previousError = currentError;
     // delay(10);
 }

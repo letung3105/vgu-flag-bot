@@ -28,7 +28,7 @@ uint16_t getDistance(uint8_t mySensor) {
 
 
 // Simple function to compare distance calculated from 2 different sensors
-bool detectObstacle(uint8_t threshold){
+bool detectObstacle(uint16_t threshold){
     if ((getDistance(leftUltraSonicSensor) <= threshold) && (getDistance(rightUltraSonicSensor) <= threshold)){
         return true;
     }
